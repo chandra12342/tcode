@@ -1,0 +1,55 @@
+import numpy as np
+import cv2
+from keras.models import load_model
+
+# Load the model
+model = load_model("keras_Model.h5", compile=False)
+
+# Load the labels
+class_names = open("labels.txt", "r").readlines()
+
+# Open the camera
+camera = cv2.VideoCapture(0)
+
+# Set camera resolution
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+while True:
+    # Capture frame-by-frame
+    ret, frame = camera.read()
+
+    # Resize the frame
+    frame = cv2.resize(frame, (224, 224), interpolation=cv2.INTER_AREA)
+
+    # Make the frame a numpy array and reshape it to the model's input shape
+    image = np.asarray(frame, dtype=np.float32).reshape(1, 224, 224, 3)
+
+    # Normalize the image array
+    image = (image / 127.5) - 1
+
+    # Predict using the model
+    prediction = model.predict(image)
+    index = np.argmax(prediction)
+    class_name = class_names[index]
+    confidence_score = prediction[0][index]
+
+    # Print prediction and confidence score
+    print("Class:", class_name[2:], end="")
+    print("Confidence Score:", str(np.round(confidence_score * 100))[:-2], "%")
+
+    # Display the frame
+    cv2.imshow("Frame", frame)
+
+    # Listen to the keyboard for presses
+    key = cv2.waitKey(1)
+
+    # Check if ESC key is pressed
+    if key == 27:
+        break
+
+# Release the camera
+camera.release()
+
+# Close all OpenCV windows
+cv2.destroyAllWindows()
